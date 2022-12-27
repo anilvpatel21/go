@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title></title>
+</head>
+<body>
+<div align="center">
+    <h1>Admin DashBoard</h1>
+    <form method="GET" action="/instancePage" class="center">
+        <select name="zone" id="zone">
+            <option value="in-chennai-1">chennai</option>
+            <option value="in-hyderabad-1">hyderabad</option>
+            <option value="in-chennai-stage-1">chennai-stage</option>
+            <option value="in-hyderabad-stage-1">hyderabad-stage</option>
+        </select>
+        <input type="text" name="instance" id="instance" placeholder="">
+        <input type="submit" value="Submit">
+    </form>
+</div>
+<script>
+    document.getElementById("zone").value = {{.Zone}}
+    function getCookie(name) {
+        var v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+        return v ? v[2] : null;
+    }
+    var username = getCookie("AdminDashboardUser");
+    var password = getCookie("AdminDashboardPass");
+    if (username == null) {
+        username = prompt("Please enter username:");
+        if (username !=  null) {
+            password = prompt("Please enter password:");
+            if (password != null) {
+                document.cookie = "AdminDashboardUser=" + username + "; expires=Wed, 11 Dec 2030 12:00:00 UTC";
+                document.cookie = "AdminDashboardPass=" + password + "; expires=Wed, 11 Dec 2030 12:00:00 UTC";
+            }
+        }
+    }
+</script>
+<table>
+  <tbody>
+    <tr> <td>ID:</td> <td>{{.InstanceId}}</td> </tr>
+    <tr> <td>IP:</td> <td>{{.InstanceIp}}</td> </tr>
+    <tr> <td>LastTaskId:</td> <td>{{.LastTaskId}}</td> </tr>
+    <tr> <td>LastAction:</td> <td>{{.LastAction}}</td> </tr>
+    <tr> <td>Status:</td> <td>{{.StatusInDb}}</td> </tr>
+    <tr> <td>Type:</td> <td>{{.InstanceType}}</td> </tr>
+    <tr> <td>MachineType:</td> <td>{{.MachineType}}</td> </tr>
+    <tr> <td>HostName:</td> <td>{{.InstanceHostName}}</td> </tr>
+    <tr> <td>MothershipId:</td> <td>{{.MothershipId}}</td> </tr>
+    <tr> <td>VNC:</td> <td>{{.Vnc}}</td> </tr>
+    <tr> <td>AppID:</td> <td>{{.AppId}}</td> </tr>
+  </tbody>
+</table>
+<h3>Mothership Details</h3>
+<table>
+  <tbody>
+    <tr> <td>ID:</td> <td><a href="/instancePage?instance={{.MothershipId}}&zone={{.Zone}}">{{.MothershipId}}</a></td> </tr>
+    <tr> <td>IP:</td> <td>{{.MothershipIp}}</td> </tr>
+    <tr> <td>Status:</td> <td>{{.MothershipStatus}}</td> </tr>
+    <tr> <td>Type:</td> <td>{{.MothershipType}}</td> </tr>
+    <tr> <td>HostName:</td> <td>{{.MothershipHostName}}</td> </tr>
+  </tbody>
+</table>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+    "templatesDir": "/Users/anilkumar.patel/go/src/hello/templates",
+    "auth": {
+        "clientId": "my-client-id",
+        "clientSecret": "91lftLTe7Ra9c++5Jc15eXAYGQWbO00xSApxBBHHCmoKGQa3",
+        "authnUrl": "https://authn-ch.flipkart.com/",
+        "serviceUrl": "https://myapp-ui.ch.flipkart.com/",
+        "sessionStoreType": "cookie",
+        "sessionStoreParams": {
+            "cookieName": "session",
+            "secret": "z6b4OubJfuWfdhZWHa9Rjwvh9ZZhDBgwbT1M0MdM/R8=",
+            "duration": 86400000,
+            "activeDuration": 120000
+        }
+    }
+}

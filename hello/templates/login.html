@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Admin Dashboard | Login</title>
+</head>
+
+<body>
+    <div align="center">
+        <h1>Admin Dashboard Changed</h1>
+        <h5>Click here to login</h5>
+        <button onclick="loginUsingLDAP()">Login Using LDAP</button>
+        <button onclick="logoutFn()">Logout</button>
+    </div>
+    <script type="text/javascript">
+
+
+
+
+
+
+        function deleteCookie(cname) {
+            document.cookie = cname + "=" + "expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        }
+
+
+
+
+        const config = {
+            "clientId": "iaas_prod",
+            "clientSecret": "b8oJ/ENF8GgQk26NN4aHbod2/sITO4qEln1jW/O5esHboixj",
+            "authnUrl": "https://authn-meta.ch.flipkart.com",
+            "serviceUrl": "http://127.0.0.1",
+            "callbackUrl": "/login_callback",
+            "logoutUrl": "/logout",
+            "authEnabled": true
+        }
+
+        const authn = new AuthConfig(config);
+
+        const loginUsingLDAP = () => {
+            authn.login();
+            //first check token & users
+        }
+
+        const logoutFn = () => {
+            authn.logoutFilter();
+            
+        }
+        
+        console.log(window.location.pathname);
+        if(window.location.pathname === '/login_callback') {
+            console.log('inside');
+            authn.callbackFilter();
+        }
+
+
+
+        function AuthConfig(config) {
+
+            var clientId = config.clientId;
+            var clientSecret = config.clientSecret;
+            var authnUrl = config.authnUrl;
+            var serviceUrl = config.serviceUrl;
+            var tokens = {};
+            var authEnabled = config.authEnabled;
+            var additionalAttributes = config.additionalAttributes;
+            var callbackUrl = config.callbackUrl;
+            var logoutUrl = config.logoutUrl;
+            var useHost = config.useHost;
+
+            var tokenUrl = authnUrl + "/oauth/token";
+            var profileUrl = authnUrl + "/oauth/r/api/v1/user/details";
+
+            if (!config.authEnabled || config.authEnabled == null) authEnabled = false;
+
+            if (additionalAttributes == null) additionalAttributes = {};
+
+            if (!callbackUrl || callbackUrl == null) callbackUrl = "/login_callback";
+            if (!logoutUrl || logoutUrl == null) logoutUrl = "/logout";
+
+
+
+            var getCookie = function (cname) {
+                var name = cname + "=";
+                var decodedCookie = decodeURIComponent(document.cookie);
+                var ca = decodedCookie.split(';');
+                for (var i = 0; i < ca.length; i++) {
+                    var c = ca[i];
+                    while (c.charAt(0) == ' ') {
+                        c = c.substring(1);
+                    }
+                    if (c.indexOf(name) == 0) {
+                        return c.substring(name.length, c.length);
+                    }
+                }
+                return "";
+            }
+
+         
+            var setCookie = function (cname, cvalue, exdays) {
+                var d = new Date();
+                d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+                var expires = "expires=" + d.toUTCString();
+                document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+            }
+
+            var shouldAuthenticateRequest = function (req) {
+                if (!authEnabled) {
+                    return false;
+                }
+
+                if (getCookie('session') && getCookie('user')) {
+                    return false;
+                }
+                var path = req.path;
+                return path !== callbackUrl && path !== logoutUrl;
+            };
+
+
+            this.ensureAuthentictionFilter = function (req, res, next) {
+                console.log('authentication', shouldAuthenticateRequest(req));
+                if (shouldAuthenticateRequest(req)) {
+                    if (!getCookie('session')) {
+                        setCookie('session', JSON.stringify({}), 1);
+                    }
+                    setCookie('savedUrl', originalUrl, 1);
+                    login();
+                } else {
+                    next();
+                }
+            };
+            // this.ensureAuthentictionFilter.unless = unless;
+
+
+            this.callbackFilter = function () {
+                
+                
+                    const urlParams = new URLSearchParams(window.location.search);
+                    var state = urlParams.get('state');
+                    var code = urlParams.get('code');
+                    if (state != getCookie('state')) {
+                        console.info("State sent to authn: " + getCookie('state'));
+                        console.info("State coming from authn: " + state);
+                        window.location.href = serviceUrl;
+                    } else {
+                       // setCookie('state', undefined, 1);
+                        console.log('code',code);
+                        fetchAccessTokenAndUserInfo(code)
+                            .then(function (user) {
+                                console.log(user);
+                                //req.session.user = user;
+                                //.redirect(req.session.savedUrl);
+                            })
+                            .catch(function (error) {
+                                console.error("Caught error in login callback ", error);
+                                //res.status = 500;
+                                //res.send("Something went wrong");
+                            });
+                    }
+                
+            };
+
+            this.isAuthenticated = function (req, res, next) {
+                if (authEnabled && (!req.session || !req.session.user)) {
+                    return res.status(401).send();
+                } else {
+                    return res.status(200).send("OK");
+                }
+            };
+
+            this.logoutFilter = function () {
+
+                
+                // var path = req.path;
+                // if (path === logoutUrl) {
+                    if (authEnabled) {
+                        deleteCookie('session');
+                        deleteCookie('user');
+                        deleteCookie('redirectUri');
+                        deleteCookie('state');
+                      
+                        console.log(authnUrl + "/logout");
+                        window.location.href = authnUrl + "/logout";
+                    } else {
+                        res.redirect(serviceUrl);
+                    }
+                // }
+                // else {
+                //     next();
+                // }
+            };
+
+            var create_UUID = function () {
+                var dt = new Date().getTime();
+                var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                    var r = (dt + Math.random() * 16) % 16 | 0;
+                    dt = Math.floor(dt / 16);
+                    return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+                });
+                return uuid;
+            }
+
+            this.login = function () {
+                var callBackHostUrl = serviceUrl;
+                const state = create_UUID();
+                setCookie('state', state, 1);
+                console.info("State sent to authn: " + state);
+                const redirectUri = callBackHostUrl + callbackUrl;
+                setCookie('redirectUri', redirectUri, 1);
+                console.log('authURL', authnUrl + "/oauth/authorize" + "?response_type=code&client_id=" + clientId + "&scope=user.profile&redirect_uri=" + redirectUri + "&state=" + state);
+                window.location.href = authnUrl + "/oauth/authorize" + "?response_type=code&client_id=" + clientId + "&scope=user.profile&redirect_uri=" + redirectUri + "&state=" + state;
+            };
+
+
+
+            this.getUser = function () {
+                return JSON.parse(getCookie('user'));
+            };
+
+            this.getTokenV2 = function (target) {
+                if (authEnabled) {
+                    if (tokens[target] && !isExpired(tokens[target])) {
+                        return Promise.resolve(tokens.token);
+                    }
+                    else {
+                        return fetchAuthorizationToken(target)
+                            .then(function (token) {
+                                tokens[token] = token;
+                                console.log("Successfully fetched authorization token");
+                                return (token.token);
+                            })
+
+                    }
+                }
+            }
+
+            this.getToken = function (target, callback) {
+                if (authEnabled) {
+                    if (!tokens[target] || isExpired(tokens[target])) {
+                        lock.acquire(target, function (cb) {
+                            if (tokens[target] && !isExpired(tokens[target]))
+                                cb(null, tokens[target].token);
+                            else
+                                fetchAuthorizationToken(target).then(function (token) {
+                                    tokens[target] = token;
+                                    cb(null, token.token);
+                                })
+                                    .catch(function (error) {
+                                        cb(error, null);
+                                    })
+                        }, callback)
+                    }
+                    else callback(null, tokens[target].token);
+                } else {
+                    return callback(null, {});
+                }
+            };
+
+            this.getTokenAsHeaderV2 = function (target) {
+                return this.getTokenV2(target)
+                    .then(function (token) {
+                        console.log("Successfully set authorization header");
+                        return ("Bearer " + token);
+                    })
+            };
+
+            this.getTokenAsHeader = function (target, callback) {
+                this.getToken(target, function (error, token) {
+                    if (token !== null)
+                        callback(error, "Bearer " + token);
+                    else
+                        callback(error, token);
+                })
+            };
+
+            var isExpired = function (token) {
+                return token.exp < new Date().getTime();
+            };
+
+            var fetchAuthorizationToken = function (target) {
+                return new Promise(function (resolve, reject) {
+                    console.log("Fetching token for " + target)
+                    request.post({
+                        url: tokenUrl,
+                        form: {
+                            grant_type: "client_credentials",
+                            target_client_id: target,
+                            client_id: clientId,
+                            client_secret: clientSecret
+                        }
+                    }, function (error, response, body) {
+                        if (error != null) {
+                            console.log("Fetching token for", target, "failed with error:", error);
+                            reject(error);
+                        }
+                        else if (response.statusCode === 200) {
+                            var jsonBody = JSON.parse(body);
+                            console.log(jsonBody);
+                            resolve({
+                                token: jsonBody.access_token,
+                                exp: (jsonBody.expires_in * 1000 + new Date().getTime())
+                            });
+                        } else {
+                            console.log("Fetching token for " + target + " failed with error: " + body);
+                            reject(body);
+                        }
+                    })
+                });
+            };
+
+
+            var fetchAccessToken = function (redirectUri, code) {
+                return new Promise(function (resolve, reject) {
+                    console.log('state',getCookie('state'))
+                    
+
+                    var formdata = new FormData();
+                    formdata.append("grant_type", "authorization_code");
+                    formdata.append("redirect_uri", redirectUri);
+                    formdata.append("client_id", clientId);
+                    formdata.append("client_secret", clientSecret);
+                    formdata.append("code", code);
+
+                    //var myHeaders = new Headers();
+
+
+                    var requestOptions = {
+                        method: 'POST',
+                        headers: {},
+                        body: formdata,
+                        redirect: 'follow',
+                        mode: 'no-cors'
+                    };
+
+                    fetch(tokenUrl, requestOptions)
+                    .then(response => console.log(response))
+                    .then(result => console.log('resut',result))
+                    .catch(error => console.log('error', error));
+                });
+            };
+
+
+            var fetchAccessTokenAndUserInfo = function (code) {
+                return fetchAccessToken(getCookie('redirectUri'), code)
+                    .then((data) => {
+                        console.log(data);
+                        fetchUserProfile(profileUrl);
+                    }).catch(function (error) {
+                        throw error;
+                    });
+            };
+
+            var fetchUserProfile = function (profileUrl) {
+                return function (token) {
+                    req.session.token = token;
+                    return new Promise(function (resolve, reject) {
+                        request.get({
+                            url: profileUrl,
+                            headers: {
+                                Authorization: "Bearer " + token,
+                                "Cache-Control": "no-cache"
+                            }
+                        }, function (error, response, body) {
+                            if (error != null) {
+                                reject(error);
+                            }
+                            else if (response.statusCode === 200) {
+                                var user = JSON.parse(body);
+                                if ('sub' in user) {
+                                    user.userId = user.sub;
+                                    resolve(user);
+                                }
+                                else
+                                    reject("Failed extract user details. " + body)
+                            }
+                            else {
+                                reject("Failed to fetch user details. " + body)
+                            }
+                        })
+                    })
+                }
+            };
+
+            function handleCallbackError(res) {
+                return function (error) {
+                    res.status = 401;
+                    res.send("Login callback failed");
+                }
+            }
+
+            var fail = function (res, status, message, params) {
+                res.status = status;
+                res.send(message);
+            };
+        };
+
+
+    </script>
+
+</body>
+
+</html>
